@@ -1,0 +1,69 @@
+name: Get US news ticker
+
+on:
+  push:
+    branches:
+      - 'main'
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron: '5 14 * * *'
+
+# reddit access for golang tests
+# since I am an single dev
+# what I care about is regression
+# making sure my code still works on the reddit api
+
+env: 
+  DISCORD_WEBHOOK: ${{ secrets.DISCORD_US_TICKERS_NEWS }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Check Messages
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9.6' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+
+      - name: Run Script to get us tickers
+        run: |
+          pip install -r requirements.txt
+          python3 us_tickers.py
+
+      - name: Commit files
+        run: |
+          if [[ -z $(git status -s) ]]
+          then
+            echo "tree is clean"
+          else
+            git add *.csv || true
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            echo "tree is dirty, please commit changes before running this"
+            echo "PUSH_FILES=true" >> $GITHUB_ENV
+            git commit -m "Add changes" -a
+          fi
+
+      - name: Push changes
+        if: ${{ env.PUSH_FILES == 'true' }}
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+
+
+      - uses: sarisia/actions-status-discord@v1
+        if: failure()
+        with:
+          webhook: ${{ secrets.DISCORD_CODE_STATUS_WEBHOOK }}
+          status: ${{ job.status }}
+          title: ${{github.repository}}
+          description: "Failed to push news"
+          nofail: false
+          nocontext: false
+          noprefix: false
+          color: 0xff0000
+          username: dli-invest_halts-and-news
