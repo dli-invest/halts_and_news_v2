@@ -108,7 +108,7 @@ for index, row in desired_tickers.iterrows():
         make_discord_request(items_to_send)
         items_to_send = []
         time.sleep(2)
-    time.sleep(0.1)
+    time.sleep(1)
 
 if len(items_to_send) > 0:
     make_discord_request(items_to_send)
