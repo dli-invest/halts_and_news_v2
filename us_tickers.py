@@ -86,7 +86,10 @@ utc=pytz.UTC
 # rate limit of discord is 2 seconds
 for index, row in desired_tickers.iterrows():
     symbol = row["symbol"]
-    data = get_news_and_events(symbol, 1, 3)
+    try:
+        data = get_news_and_events(symbol, 1, 3)
+    except Exception as e:
+        continue
     news = data.get("news", [])
     if len(news) == 0:
         continue
