@@ -9,6 +9,12 @@ from io import StringIO
 from datetime import datetime, timedelta
 import pytz
 
+max_iterations = 50
+# read data.db.json
+with open('db.json') as f:
+    database = json.load(f)
+# open db.json file with property called iteration
+
 NEWS_WINDOW = 24
 
 from lxml.html import fromstring
@@ -95,6 +101,14 @@ def get_usd_tickers():
 
 
 us_tickers = get_usd_tickers()
+total_rows = len(us_tickers)
+iteration = database["iteration"]
+# seems to start timing out around 50 tries
+split_amount = total_rows // max_iterations
+# split us_stocks into chunks of total_rows / 25
+# get iteration by split_amount * iteration from slicing us_stocks
+split_stocks = [us_tickers[i:i + split_amount] for i in range(0, len(us_tickers), split_amount)]
+split_stocks = split_stocks[iteration]
 
 # filter tickers out by market cap, only really care about super large companies and super small companies
 # MARKET CAP < 1 BILLION or greater than 200 BILLION
@@ -105,9 +119,7 @@ us_tickers = get_usd_tickers()
 # 
 # 
 # 
-desired_tickers = us_tickers.loc[(us_tickers['MarketCap'] >= 500e9) | (us_tickers['MarketCap'] <= 1e8)] 
-
-desired_tickers = desired_tickers.head(1000)
+desired_tickers = split_stocks.loc[(split_stocks['MarketCap'] >= 500e9) | (split_stocks['MarketCap'] <= 1e8)] 
 
 base_news_url = "https://money.tmx.com/en/quote"
 
@@ -124,10 +136,7 @@ for index, row in desired_tickers.iterrows():
     try:
         data = get_news_and_events(symbol, 1, 3)
     except Exception as e:
-        os.environ["HTTP_PROXY"] = valid_proxies[0]
-        os.environ["HTTPS_PROXY"] = valid_proxies[0]
-        proxy_on = proxy_on + 1
-        data = get_news_and_events(symbol, 1, 3)
+        continue
     news = data.get("news", [])
     if len(news) == 0:
         continue
@@ -153,3 +162,10 @@ for index, row in desired_tickers.iterrows():
 
 if len(items_to_send) > 0:
     make_discord_request(items_to_send)
+
+database["iteration"] = database["iteration"] + 1
+if database["iteration"] >= 50:
+    database["iteration"] = 0
+# write to data/db.json
+with open('data/db.json', 'w') as f:
+    json.dump(database, f)
