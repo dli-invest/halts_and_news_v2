@@ -46,6 +46,7 @@ for i in range(1,11):
 #We will just skip retries as its beyond the scope of this tutorial and we are only downloading a single url 
         print("Skipping. Connnection error")
 
+print(valid_proxies)
 def make_discord_request(embeds = []):
     data = {}
     data["embeds"] = embeds
@@ -123,8 +124,8 @@ for index, row in desired_tickers.iterrows():
     try:
         data = get_news_and_events(symbol, 1, 3)
     except Exception as e:
-        os.environ["HTTP_PROXY"] = valid_proxies[proxy_on]
-        os.environ["HTTPS_PROXY"] = valid_proxies[proxy_on]
+        os.environ["HTTP_PROXY"] = valid_proxies[0]
+        os.environ["HTTPS_PROXY"] = valid_proxies[0]
         proxy_on = proxy_on + 1
         data = get_news_and_events(symbol, 1, 3)
     news = data.get("news", [])
@@ -148,7 +149,7 @@ for index, row in desired_tickers.iterrows():
         make_discord_request(items_to_send)
         items_to_send = []
         time.sleep(1)
-    time.sleep(0.6)
+    time.sleep(1)
 
 if len(items_to_send) > 0:
     make_discord_request(items_to_send)
