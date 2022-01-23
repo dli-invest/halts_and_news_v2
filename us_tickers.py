@@ -11,6 +11,41 @@ import pytz
 
 NEWS_WINDOW = 24
 
+def switch_to_proxy():
+    from lxml.html import fromstring
+import requests
+from itertools import cycle
+import traceback
+def get_proxies():
+    url = 'https://free-proxy-list.net/'
+    response = requests.get(url)
+    parser = fromstring(response.text)
+    proxies = set()
+    for i in parser.xpath('//tbody/tr')[:10]:
+        if i.xpath('.//td[7][contains(text(),"yes")]'):
+        proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
+    proxies.add(proxy)
+    return proxies
+
+#If you are copy pasting proxy ips, put in the list below
+#proxies = ['121.129.127.209:80', '124.41.215.238:45169', '185.93.3.123:8080', '194.182.64.67:3128', '106.0.38.174:8080', '163.172.175.210:3128', '13.92.196.150:8080']
+proxies = get_proxies()
+proxy_pool = cycle(proxies)
+valid_proxies = []
+proxy_on = 0
+url = 'https://httpbin.org/ip'
+for i in range(1,11):
+    #Get a proxy from the pool
+    proxy = next(proxy_pool)
+    print("Request #%d"%i)
+    try:
+        response = requests.get(url,proxies={"http": proxy, "https": proxy})
+        print(response.json())
+        valid_proxies.append(proxy)
+    except:
+#Most free proxies will often get connection errors. You will have retry the entire request using another proxy to work. 
+#We will just skip retries as its beyond the scope of this tutorial and we are only downloading a single url 
+    print("Skipping. Connnection error")
 
 def make_discord_request(embeds = []):
     data = {}
@@ -89,7 +124,10 @@ for index, row in desired_tickers.iterrows():
     try:
         data = get_news_and_events(symbol, 1, 3)
     except Exception as e:
-        continue
+        os.environ["HTTP_PROXY"] = valid_proxies[proxy_on]
+        os.environ["HTTPS_PROXY"] = valid_proxies[proxy_on]
+        proxy_on = proxy_on + 1
+        data = get_news_and_events(symbol, 1, 3)
     news = data.get("news", [])
     if len(news) == 0:
         continue
@@ -110,8 +148,8 @@ for index, row in desired_tickers.iterrows():
     if len(items_to_send) >= 9:
         make_discord_request(items_to_send)
         items_to_send = []
-        time.sleep(2)
-    time.sleep(1)
+        time.sleep(1)
+    time.sleep(0.6)
 
 if len(items_to_send) > 0:
     make_discord_request(items_to_send)
