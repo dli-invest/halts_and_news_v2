@@ -11,8 +11,7 @@ import pytz
 
 NEWS_WINDOW = 24
 
-def switch_to_proxy():
-    from lxml.html import fromstring
+from lxml.html import fromstring
 import requests
 from itertools import cycle
 import traceback
@@ -23,7 +22,7 @@ def get_proxies():
     proxies = set()
     for i in parser.xpath('//tbody/tr')[:10]:
         if i.xpath('.//td[7][contains(text(),"yes")]'):
-        proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
+            proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
     proxies.add(proxy)
     return proxies
 
